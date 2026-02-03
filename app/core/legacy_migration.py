@@ -96,7 +96,8 @@ def migrate_legacy_cache_dirs(data_dir: Path | None = None) -> Dict[str, Any]:
         except Exception:
             pass
 
-        done_marker.write_text(str(int(time.time())), encoding="utf-8")
+        if errors == 0:
+            done_marker.write_text(str(int(time.time())), encoding="utf-8")
         if moved or skipped or errors:
             logger.info(
                 f"Legacy cache migration complete: moved={moved}, skipped={skipped}, errors={errors}"
@@ -116,4 +117,3 @@ def migrate_legacy_cache_dirs(data_dir: Path | None = None) -> Dict[str, Any]:
 
 
 __all__ = ["migrate_legacy_cache_dirs"]
-

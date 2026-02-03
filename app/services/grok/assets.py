@@ -543,6 +543,9 @@ class DownloadService(BaseService):
         super().__init__(proxy)
         # 创建缓存目录
         self.base_dir = Path(__file__).parent.parent.parent.parent / "data" / "tmp"
+        self.legacy_base_dir = Path(__file__).parent.parent.parent.parent / "data" / "temp"
+        self.legacy_image_dir = self.legacy_base_dir / "image"
+        self.legacy_video_dir = self.legacy_base_dir / "video"
         self.image_dir = self.base_dir / "image"
         self.video_dir = self.base_dir / "video"
         self.image_dir.mkdir(parents=True, exist_ok=True)
@@ -553,6 +556,12 @@ class DownloadService(BaseService):
         """获取缓存路径"""
         cache_dir = self.image_dir if media_type == "image" else self.video_dir
         filename = file_path.lstrip('/').replace('/', '-')
+        return cache_dir / filename
+
+    def _legacy_cache_path(self, file_path: str, media_type: str) -> Path:
+        """Legacy cache path (data/temp)."""
+        cache_dir = self.legacy_image_dir if media_type == "image" else self.legacy_video_dir
+        filename = file_path.lstrip("/").replace("/", "-")
         return cache_dir / filename
     
     async def download(self, file_path: str, token: str, media_type: str = "image") -> Tuple[Optional[Path], str]:
@@ -571,6 +580,12 @@ class DownloadService(BaseService):
                     logger.debug(f"Cache hit: {cache_path}")
                     mime_type = MIME_TYPES.get(cache_path.suffix.lower(), DEFAULT_MIME)
                     return cache_path, mime_type
+
+                legacy_path = self._legacy_cache_path(file_path, media_type)
+                if legacy_path.exists():
+                    logger.debug(f"Legacy cache hit: {legacy_path}")
+                    mime_type = MIME_TYPES.get(legacy_path.suffix.lower(), DEFAULT_MIME)
+                    return legacy_path, mime_type
 
                 lock_name = f"download_{media_type}_{hashlib.sha1(str(cache_path).encode('utf-8')).hexdigest()[:16]}"
                 async with _file_lock(lock_name, timeout=10):
